@@ -8,7 +8,7 @@ package mq.activemq;
 public class ActiveMqConfig {
 
     /**
-     * ActiveMQ 连接配置，简单起见，不适用配置文件了
+     * ActiveMQ 连接配置，简单起见，不使用配置文件了
      */
     static final String USERNAME = "user";
     static final String PASSWORD = "user";
