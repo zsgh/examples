@@ -1,84 +1,54 @@
 package nio;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.*;
-import java.util.Iterator;
-import java.util.Set;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
 
+/**
+ * @author song.zh
+ */
 public class NioServer {
+
     public static void main(String[] args) {
         startServer();
     }
 
     public static void startServer() {
+
+
         try {
+            //ServerSocketChannel只有一个
             ServerSocketChannel channel = ServerSocketChannel.open();
-            Selector selector = Selector.open();
-            channel.bind(new InetSocketAddress(InetAddress.getLocalHost(), 5000));
+            Selector s1 = Selector.open();
+            Selector s2 = Selector.open();
+            Selector s3 = Selector.open();
+
+            channel.bind(new InetSocketAddress(NIOConfig.PORT));
+
+            //这里必须设置为false，否则就不是NIO了
             channel.configureBlocking(false);
-            channel.register(selector, SelectionKey.OP_ACCEPT);
-            handleSelector(selector);
+
+            /**
+             * 一个channel是可以注册多个selector的
+             * 服务端的初始状态是OP_ACCEPT，而客户端是OP_CONNECT
+             * 连接尚未建立之前，只能注册初始状态，这里是服务端，所以只能注册OP_ACCEPT
+             */
+            channel.register(s1, SelectionKey.OP_ACCEPT);
+            channel.register(s2, SelectionKey.OP_ACCEPT);
+            channel.register(s3, SelectionKey.OP_ACCEPT);
+
+
+            handleSelector(s1);
+            handleSelector(s2);
+            handleSelector(s3);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public static void  handleSelector(Selector selector) {
-        Set<SelectionKey> keySet = selector.selectedKeys();
-        Iterator<SelectionKey> iterator = keySet.iterator();
-        while (iterator.hasNext()) {
-            SelectionKey key = iterator.next();
-            ServerSocketChannel channel = (ServerSocketChannel) key.channel();
-            if (key.isAcceptable()) {
-                System.out.println("may i be accepted ?");
-                try {
-                    channel.accept().configureBlocking(false).register(selector, SelectionKey.OP_READ);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (key.isReadable()) {
-                ByteBuffer buffer = ByteBuffer.allocate(1024);
-                try {
-                    ((SocketChannel)key.channel()).read(buffer);
-                    System.out.println("buffer size:"+getString(buffer));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (key.isWritable()) {
-                ByteBuffer buffer = ByteBuffer.allocate(1024);
-                buffer.put("i'm message from server!".getBytes());
-                buffer.flip();
-                try {
-                    ((SocketChannel)key.channel()).write(buffer);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (key.isConnectable()) {
-                System.out.println("connected!");
-            }
-        }
-    }
-
-    public static String getString(ByteBuffer buffer)
-    {
-        String string = "";
-        try
-        {
-            for(int i = 0; i<buffer.position();i++){
-                string += (char)buffer.get(i);
-            }
-            return string;
-        }
-        catch (Exception ex)
-        {
-            ex.printStackTrace();
-            return "";
-        }
+    public static void handleSelector(Selector selector) {
+        new Thread(new SelectorHandler(selector)).start();
     }
 }
