@@ -34,4 +34,21 @@ public class ExceptionImpl implements ExceptionInterfaceAB {
         throw new ExceptionChildA();
     }
 
+    public static int getInt() {
+        int a = 1;
+        try {
+            a = Integer.valueOf("2l");
+            return a;
+        } catch (NumberFormatException e) {
+            a = 3;
+            return a;
+        } finally {
+            a = 4;
+        }
+    }
+
+    public static void main(String[] args) {
+        System.out.println(getInt());
+    }
+
 }
